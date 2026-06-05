@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Impacto · Stand IA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07070f;
+    --surface: #0f0f1c;
+    --surface2: #16162a;
+    --border: rgba(130,80,255,0.18);
+    --border2: rgba(255,255,255,0.07);
+    --accent: #8c50ff;
+    --accent2: #d040b0;
+    --text: #e8e4dc;
+    --text-muted: rgba(232,228,220,0.5);
+    --text-dim: rgba(232,228,220,0.25);
+    --glow: rgba(140,80,255,0.35);
+    --glow2: rgba(208,64,176,0.25);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+
+  /* Fondo animado */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 15% 20%, rgba(140,80,255,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 85% 80%, rgba(208,64,176,0.10) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 60% at 50% 50%, rgba(20,10,50,0.8) 0%, transparent 80%);
+    pointer-events: none;
+  }
+
+  /* Grid pattern sutil */
+  body::after {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(130,80,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(130,80,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .app {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 640px;
+    display: flex; flex-direction: column;
+    gap: 0;
+  }
+
+  /* ── PANTALLA DE BIENVENIDA ── */
+  #screen-welcome {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 0 80px rgba(140,80,255,0.15), 0 0 0 1px rgba(140,80,255,0.08);
+    animation: fadeIn 0.6s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .welcome-hero {
+    padding: 48px 40px 36px;
+    text-align: center;
+    background: linear-gradient(160deg, rgba(140,80,255,0.08) 0%, transparent 60%);
+    border-bottom: 1px solid var(--border2);
+  }
+
+  .logo-ring {
+    width: 80px; height: 80px; margin: 0 auto 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+    box-shadow: 0 0 40px var(--glow), 0 0 80px var(--glow2);
+    animation: pulse-ring 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-ring {
+    0%, 100% { box-shadow: 0 0 40px var(--glow), 0 0 80px var(--glow2); }
+    50% { box-shadow: 0 0 60px var(--glow), 0 0 120px var(--glow2), 0 0 0 8px rgba(140,80,255,0.1); }
+  }
+
+  .welcome-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 32px;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #e8e4dc 30%, #c8a0ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+
+  .welcome-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 300;
+  }
+
+  .welcome-body { padding: 32px 40px 36px; }
+
+  .welcome-desc {
+    font-size: 15px;
+    line-height: 1.7;
+    color: rgba(232,228,220,0.75);
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  .api-field-label {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .api-input-wrap { position: relative; margin-bottom: 10px; }
+
+  .api-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'DM Sans', monospace;
+    font-size: 13px;
+    padding: 12px 44px 12px 16px;
+    outline: none;
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+
+  .api-input:focus {
+    border-color: rgba(140,80,255,0.6);
+    box-shadow: 0 0 0 3px rgba(140,80,255,0.1);
+  }
+
+  .api-input::placeholder { color: var(--text-dim); }
+
+  .eye-btn {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); font-size: 16px; padding: 4px;
+    transition: color 0.2s;
+  }
+  .eye-btn:hover { color: var(--text); }
+
+  .api-hint {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+  .api-hint a { color: rgba(140,80,255,0.8); text-decoration: none; }
+  .api-hint a:hover { color: #c8a0ff; }
+
+  .btn-start {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 14px;
+    color: white; font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 16px;
+    padding: 16px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.25s, opacity 0.2s;
+    box-shadow: 0 4px 30px rgba(140,80,255,0.4);
+    letter-spacing: 0.02em;
+  }
+  .btn-start:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 40px rgba(140,80,255,0.55);
+  }
+  .btn-start:active:not(:disabled) { transform: scale(0.98); }
+  .btn-start:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .features {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 10px; margin-top: 24px;
+  }
+  .feat {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 12px 10px;
+    text-align: center;
+  }
+  .feat-icon { font-size: 20px; margin-bottom: 6px; }
+  .feat-text { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+
+  /* ── PANTALLA CHAT ── */
+  #screen-chat {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 0 80px rgba(140,80,255,0.15), 0 0 0 1px rgba(140,80,255,0.08);
+    flex-direction: column;
+    animation: fadeIn 0.5s ease;
+  }
+
+  .chat-header {
+    background: linear-gradient(135deg, rgba(140,80,255,0.12), rgba(208,64,176,0.08));
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
+
+  .chat-avatar {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+    box-shadow: 0 0 20px var(--glow);
+  }
+
+  .chat-info { flex: 1; }
+  .chat-name {
+    font-family: 'Syne', sans-serif; font-weight: 700;
+    font-size: 15px; color: var(--text);
+  }
+  .chat-status { font-size: 12px; color: rgba(140,80,255,0.8); }
+
+  .progress-bar {
+    display: flex; gap: 4px; align-items: center;
+  }
+  .prog-step {
+    width: 28px; height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,0.1);
+    transition: background 0.5s;
+  }
+  .prog-step.done { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .prog-label {
+    font-size: 11px; color: var(--text-muted);
+    margin-left: 4px; white-space: nowrap;
+  }
+
+  .chat-msgs {
+    height: 380px;
+    overflow-y: auto;
+    padding: 20px 16px;
+    display: flex; flex-direction: column;
+    gap: 14px;
+    scroll-behavior: smooth;
+  }
+
+  .chat-msgs::-webkit-scrollbar { width: 4px; }
+  .chat-msgs::-webkit-scrollbar-track { background: transparent; }
+  .chat-msgs::-webkit-scrollbar-thumb { background: rgba(140,80,255,0.3); border-radius: 2px; }
+
+  .msg-row { display: flex; gap: 10px; align-items: flex-end; animation: msgIn 0.3s ease; }
+  .msg-row.user { flex-direction: row-reverse; }
+
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg-av {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0;
+  }
+  .msg-av.bot {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    box-shadow: 0 0 10px rgba(140,80,255,0.4);
+  }
+  .msg-av.usr {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+
+  .msg-bub {
+    max-width: 78%; padding: 12px 16px;
+    border-radius: 18px; font-size: 14px; line-height: 1.6;
+  }
+  .msg-row.bot .msg-bub {
+    background: rgba(140,80,255,0.1);
+    border: 1px solid rgba(140,80,255,0.2);
+    border-bottom-left-radius: 4px;
+    color: var(--text);
+  }
+  .msg-row.user .msg-bub {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-bottom-right-radius: 4px;
+    color: rgba(232,228,220,0.85);
+  }
+
+  .final-bub {
+    background: linear-gradient(135deg, rgba(140,80,255,0.15), rgba(208,64,176,0.1)) !important;
+    border: 1px solid rgba(140,80,255,0.35) !important;
+  }
+
+  .typing-dots { display: flex; gap: 5px; align-items: center; padding: 4px 0; }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(140,80,255,0.7);
+    animation: blink 1.3s infinite;
+  }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink {
+    0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+    30% { opacity: 1; transform: scale(1.2); }
+  }
+
+  .chat-input-area {
+    border-top: 1px solid var(--border2);
+    padding: 14px 16px 16px;
+    display: flex; gap: 10px; align-items: flex-end;
+  }
+
+  .chat-textarea {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 11px 16px;
+    resize: none; min-height: 44px; max-height: 120px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    line-height: 1.5;
+  }
+  .chat-textarea:focus {
+    border-color: rgba(140,80,255,0.5);
+    box-shadow: 0 0 0 3px rgba(140,80,255,0.08);
+  }
+  .chat-textarea::placeholder { color: var(--text-dim); }
+  .chat-textarea:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .send-btn {
+    width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; cursor: pointer; color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    transition: transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 4px 20px rgba(140,80,255,0.4);
+  }
+  .send-btn:hover:not(:disabled) {
+    transform: scale(1.08);
+    box-shadow: 0 6px 28px rgba(140,80,255,0.55);
+  }
+  .send-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+  .restart-row {
+    padding: 10px 16px 16px;
+    border-top: 1px solid var(--border2);
+    display: flex; gap: 8px;
+  }
+  .btn-restart {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    padding: 10px; cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-restart:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+
+  .error-msg {
+    font-size: 12px; color: #f08080;
+    background: rgba(240,80,80,0.08);
+    border: 1px solid rgba(240,80,80,0.2);
+    border-radius: 8px; padding: 8px 12px;
+    margin: 8px 16px 0;
+    display: none;
+  }
+
+  /* Responsive */
+  @media (max-width: 520px) {
+    .welcome-hero { padding: 36px 24px 28px; }
+    .welcome-body { padding: 24px 24px 28px; }
+    .welcome-title { font-size: 26px; }
+    .features { grid-template-columns: 1fr; }
+    .chat-msgs { height: 320px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- PANTALLA BIENVENIDA -->
+  <div id="screen-welcome">
+    <div class="welcome-hero">
+      <div class="logo-ring">🤖</div>
+      <h1 class="welcome-title">Simulador de Impacto</h1>
+      <p class="welcome-sub">Entrevistador IA · Stand de Evento</p>
+    </div>
+    <div class="welcome-body">
+      <p class="welcome-desc">
+        Dos preguntas. Un análisis brutalmente honesto.<br>
+        ¿Estás listo para saber cómo te ven en una entrevista real?
+      </p>
+
+      <p class="api-field-label">Tu API Key de Groq (gratuita)</p>
+      <div class="api-input-wrap">
+        <input type="password" class="api-input" id="api-key-input"
+          placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+        <button class="eye-btn" id="eye-btn" title="Mostrar/ocultar key">👁</button>
+      </div>
+      <p class="api-hint">
+        Obtenela gratis en <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a> · Sin tarjeta de crédito · La key no se guarda en ningún servidor.
+      </p>
+
+      <button class="btn-start" id="btn-start" disabled>
+        ¡Empezar entrevista! →
+      </button>
+
+      <div class="features">
+        <div class="feat">
+          <div class="feat-icon">⚡</div>
+          <div class="feat-text">Respuestas en menos de 2 seg</div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">🎯</div>
+          <div class="feat-text">Feedback sincero y constructivo</div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">🔒</div>
+          <div class="feat-text">100% privado, solo en tu navegador</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANTALLA CHAT -->
+  <div id="screen-chat">
+    <div class="chat-header">
+      <div class="chat-avatar">🤖</div>
+      <div class="chat-info">
+        <div class="chat-name">Simulador de Impacto</div>
+        <div class="chat-status" id="chat-status">En vivo · Stand IA</div>
+      </div>
+      <div>
+        <div class="progress-bar">
+          <div class="prog-step" id="ps0"></div>
+          <div class="prog-step" id="ps1"></div>
+          <div class="prog-step" id="ps2"></div>
+          <span class="prog-label" id="stage-label">Inicio</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-msgs" id="chat-msgs"></div>
+    <div class="error-msg" id="error-msg"></div>
+
+    <div class="chat-input-area" id="input-area">
+      <textarea class="chat-textarea" id="chat-input"
+        placeholder="Escribí tu respuesta acá..." rows="1" disabled></textarea>
+      <button class="send-btn" id="send-btn" disabled title="Enviar">➤</button>
+    </div>
+
+    <div class="restart-row" id="restart-row" style="display:none;">
+      <button class="btn-restart" id="btn-restart">↺ Nueva entrevista</button>
+      <button class="btn-restart" id="btn-change-key" style="flex:0.6;">⚙ Cambiar key</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+const MODEL = "llama-3.3-70b-versatile";
+
+const SYSTEM_PROMPT = `Tu nombre es "Simulador de Impacto". Estás en un stand de un evento de IA en Latinoamérica.
+Tu objetivo es evaluar a los participantes de forma sincera, directa y constructiva.
+
+Seguí estrictamente este flujo en 3 turnos:
+
+TURNO 1 (tuyo, el primero): Saludá brevemente con energía y entusiasmo. Luego hacé EXACTAMENTE esta pregunta: "¿Cuál es tu nombre y cuál considerás que es el mayor logro de tu carrera laboral hasta hoy?"
+
+TURNO 2 (el usuario responde) → TURNO 3 (tuyo): No des feedback todavía. Hacé una pregunta de profundización basada en lo que te dijeron. Algo como: "Interesante. ¿Y cuál fue el error más grande que cometiste en ese proceso y qué aprendiste de eso?"
+
+TURNO 4 (el usuario responde) → TURNO 5 (tuyo, DEVOLUCIÓN FINAL):
+Analizá sus dos respuestas. Sé brutalmente sincero pero profesional.
+- Si ves que exagera o "vende humo", señalalo con gracia y humor.
+- Si hay un valor real, destacalo.
+- Terminá con UN consejo concreto para su futuro laboral.
+- Al final escribí exactamente: "--- FIN DE LA ENTREVISTA ---"
+
+REGLA CRÍTICA: Máximo 3 o 4 frases por turno. Sé dinámico, picante y directo. Nada de rodeos.
+Respondé SIEMPRE en español latinoamericano informal. Usá "vos" en lugar de "tú".`;
+
+// ── ESTADO ──────────────────────────────────────────────────────────
+let apiKey = "";
+let history = [];
+let stage = 0; // 0=inicio, 1=esperando resp1, 2=esperando resp2, 3=fin
+let busy = false;
+
+// ── REFS DOM ─────────────────────────────────────────────────────────
+const screenWelcome = document.getElementById('screen-welcome');
+const screenChat = document.getElementById('screen-chat');
+const apiInput = document.getElementById('api-key-input');
+const eyeBtn = document.getElementById('eye-btn');
+const btnStart = document.getElementById('btn-start');
+const chatMsgs = document.getElementById('chat-msgs');
+const chatInput = document.getElementById('chat-input');
+const sendBtn = document.getElementById('send-btn');
+const chatStatus = document.getElementById('chat-status');
+const stageLabel = document.getElementById('stage-label');
+const errorMsg = document.getElementById('error-msg');
+const restartRow = document.getElementById('restart-row');
+const inputArea = document.getElementById('input-area');
+
+// ── WELCOME ──────────────────────────────────────────────────────────
+apiInput.addEventListener('input', () => {
+  const val = apiInput.value.trim();
+  btnStart.disabled = val.length < 20;
+});
+
+eyeBtn.addEventListener('click', () => {
+  apiInput.type = apiInput.type === 'password' ? 'text' : 'password';
+  eyeBtn.textContent = apiInput.type === 'password' ? '👁' : '🙈';
+});
+
+btnStart.addEventListener('click', () => {
+  apiKey = apiInput.value.trim();
+  startChat();
+});
+
+// ── CHAT ─────────────────────────────────────────────────────────────
+function startChat() {
+  screenWelcome.style.display = 'none';
+  screenChat.style.display = 'flex';
+  history = [];
+  stage = 0;
+  chatMsgs.innerHTML = '';
+  restartRow.style.display = 'none';
+  inputArea.style.display = 'flex';
+  hideError();
+  callGroq(null);
+}
+
+function setProgress() {
+  const steps = ['ps0','ps1','ps2'];
+  const labels = ['Saludo','Logro','Error','Devolución'];
+  steps.forEach((id, i) => {
+    document.getElementById(id).classList.toggle('done', i < stage);
+  });
+  stageLabel.textContent = labels[Math.min(stage, 3)];
+}
+
+function addMsg(role, text, isFinal = false) {
+  const isBot = role === 'bot';
+  const row = document.createElement('div');
+  row.className = `msg-row ${isBot ? 'bot' : 'user'}`;
+  const bubClass = isFinal ? 'msg-bub final-bub' : 'msg-bub';
+  row.innerHTML = `
+    <div class="msg-av ${isBot ? 'bot' : 'usr'}">${isBot ? '🤖' : '👤'}</div>
+    <div class="${bubClass}">${text.replace(/\n/g, '<br>')}</div>
+  `;
+  chatMsgs.appendChild(row);
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+}
+
+function showTyping() {
+  const row = document.createElement('div');
+  row.className = 'msg-row bot'; row.id = 'typing-row';
+  row.innerHTML = `
+    <div class="msg-av bot">🤖</div>
+    <div class="msg-bub" style="padding:14px 18px;">
+      <div class="typing-dots">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>`;
+  chatMsgs.appendChild(row);
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing-row');
+  if (t) t.remove();
+}
+
+function setInput(enabled) {
+  chatInput.disabled = !enabled;
+  sendBtn.disabled = !enabled;
+  if (enabled) chatInput.focus();
+}
+
+function showError(msg) {
+  errorMsg.textContent = msg;
+  errorMsg.style.display = 'block';
+}
+function hideError() { errorMsg.style.display = 'none'; }
+
+async function callGroq(userText) {
+  if (busy) return;
+  busy = true;
+  setInput(false);
+  hideError();
+
+  if (userText !== null) {
+    history.push({ role: 'user', content: userText });
+  }
+
+  showTyping();
+  chatStatus.textContent = 'Pensando...';
+
+  try {
+    const messages = [
+      { role: 'system', content: SYSTEM_PROMPT },
+      ...history
+    ];
+
+    const res = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: messages,
+        max_tokens: 400,
+        temperature: 0.85
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `Error ${res.status}`);
+    }
+
+    const data = await res.json();
+    const reply = data.choices?.[0]?.message?.content || '';
+
+    removeTyping();
+    history.push({ role: 'assistant', content: reply });
+
+    stage++;
+    setProgress();
+
+    const isFinal = reply.includes('--- FIN DE LA ENTREVISTA ---');
+    const displayText = reply.replace('--- FIN DE LA ENTREVISTA ---', '').trim();
+
+    addMsg('bot', displayText, isFinal);
+
+    if (isFinal || stage >= 4) {
+      chatStatus.textContent = 'Entrevista finalizada';
+      inputArea.style.display = 'none';
+      restartRow.style.display = 'flex';
+      setProgress();
+    } else {
+      chatStatus.textContent = 'En vivo · Stand IA';
+      setInput(true);
+    }
+
+  } catch (e) {
+    removeTyping();
+    showError(`⚠ ${e.message}. Verificá tu API key de Groq.`);
+    chatStatus.textContent = 'Error de conexión';
+    setInput(stage > 0);
+    if (stage === 0) {
+      screenChat.style.display = 'none';
+      screenWelcome.style.display = 'block';
+    }
+  }
+
+  busy = false;
+}
+
+function handleSend() {
+  const val = chatInput.value.trim();
+  if (!val || busy) return;
+  addMsg('user', val);
+  chatInput.value = '';
+  chatInput.style.height = '';
+  callGroq(val);
+}
+
+sendBtn.addEventListener('click', handleSend);
+chatInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+});
+chatInput.addEventListener('input', () => {
+  chatInput.style.height = 'auto';
+  chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+});
+
+document.getElementById('btn-restart').addEventListener('click', startChat);
+document.getElementById('btn-change-key').addEventListener('click', () => {
+  screenChat.style.display = 'none';
+  screenWelcome.style.display = 'block';
+  apiInput.value = '';
+  btnStart.disabled = true;
+});
+</script>
+</body>
+</html>
